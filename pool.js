@@ -6,7 +6,7 @@
 var net = require('net');
 var events = require('events');
 
-class client extends events.EventEmitter {
+class sclient extends events.EventEmitter {
     constructor(host, port, path) {
         super();
         this._client = null;
@@ -58,11 +58,12 @@ class client extends events.EventEmitter {
             this.emit('freeClientChanged',this._client);
         })
         this._client.on('close', ()=> {
-            console.log('远程服务器%s %s关闭', this._client.remoteAddress, this._client.remotePort);
+            console.log('远程服务器关闭');
         })
-        this._client.o('error',(err)=>{
-            console.error(err);
+        this._client.on('error',(err)=>{
+            console.error('Error:%s,code:%s',err.message,err.code);
             this.emit('clientError',err);
+            
 
         })
         this.on('sendmsg',(msg)=>{
@@ -82,7 +83,7 @@ class client extends events.EventEmitter {
     setFree(isFree){
         this._free = isFree;
     }
-    getClient(){
+    getConnetion(){
         return this._client;
     }
 }
@@ -107,7 +108,7 @@ class clientpool {
                 return c.isFree();
             });
             if(client){
-                fn.call(client,client);
+                fn.call(client,null,client);
             }else{
                 //如果没有空闲则创建新连接
                 if(this._currentConnectCount>=this.maxConnectCount){
@@ -119,21 +120,28 @@ class clientpool {
             }
         }
     }
+    getCurrentCount(){
+        return this._pool.length;
+    }
     _initClient(){
         if(this.minConnectCount>0){
-            let client = new client(config.host,config.port,config.path);
-            client.on('connectSuccess',()=>{
-                this._pool.push(client);
-                this._currentConnectCount++;
-            });
+            for(let i =0;i<this.minConnectCount;i++){
+                let client = new sclient(this._config.host,this._config.port,this._config.path);
+                client.createClient();
+                client.on('connectSuccess',()=>{
+                    this._pool.push(client);
+                    this._currentConnectCount++;
+                });
+            }
         }
     }
 
     _createClient(fn){
-        let client = new client(config.host,config.port,config.path);
+        let client = new sclient(this._config.host,this._config.port,this._config.path);
+        client.createClient();
         client.on('connectSuccess',()=>{
             this._pool.push(client);
-            fn.call(client,client);
+            fn.call(client,null,client);
             this._currentConnectCount++;
         });
         client.on('clientError',(err)=>{
@@ -145,17 +153,19 @@ class clientpool {
             if(errorInd>=0){
                 this._pool.splice(errorInd,1);
             }
-            client.getClient().end();
+            client.getConnetion().end();
+            fn.call(client,err);
         })
         client.on('freeClientChanged',()=>{
             if(this._waitingList.length<=0) return;
             let waitingfn = this._waitingList.shift();//取出第一个信息
-            fn.call(client,client);
+            fn.call(client,null,client);
         })
     }
 
 }
 
 exports.netpool = function (config) {
-    return new clientpool(config);
+    let _config = config || {};
+    return new clientpool(_config);
 }

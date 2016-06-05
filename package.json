@@ -1,0 +1,27 @@
+{
+  "name": "netpool",
+  "version": "1.0.0",
+  "description": "基于net模块的socket连接池",
+  "main": "pool.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cxp1206/socketpool.git"
+  },
+  "keywords": [
+    "pool",
+    "socket"
+  ],
+  "author": "caoxp",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cxp1206/socketpool/issues"
+  },
+  "homepage": "https://github.com/cxp1206/socketpool#readme",
+  "devDependencies": {
+    "assert": "^1.4.1",
+    "chai": "^3.5.0"
+  }
+}
